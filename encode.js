@@ -1,4 +1,4 @@
-import { Decoder, mult10, Tag, typedArrays, addExtension as decodeAddExtension } from './decode.js'
+import { Decoder, mult10, Tag, SimpleValue, typedArrays, addExtension as decodeAddExtension } from './decode.js'
 let textEncoder
 try {
 	textEncoder = new TextEncoder()
@@ -1049,7 +1049,7 @@ extensionClasses = [ Date, Set, Error, RegExp, Tag, ArrayBuffer,
 	Uint8Array, Uint8ClampedArray, Uint16Array, Uint32Array,
 	typeof BigUint64Array == 'undefined' ? function() {} : BigUint64Array, Int8Array, Int16Array, Int32Array,
 	typeof BigInt64Array == 'undefined' ? function() {} : BigInt64Array,
-	Float32Array, Float64Array, SharedData ]
+	Float32Array, Float64Array, SharedData, SimpleValue ]
 
 //Object.getPrototypeOf(Uint8Array.prototype).constructor /*TypedArray*/
 extensions = [{ // Date
@@ -1143,7 +1143,17 @@ extensions = [{ // Date
 		} else
 			encode(new Tag(sharedData.version, 0x53687264))
 		}
-	}]
+	}, { // SimpleValue
+	encode(simpleValue) {
+		let value = simpleValue.value
+		if (value < 0x18) {
+			target[position++] = 0xe0 | value
+		} else {
+			target[position++] = 0xf8
+			target[position++] = value
+		}
+	}
+}]
 function typedArrayEncoder(tag, size) {
 	if (!isLittleEndianMachine && size > 1)
 		tag -= 4 // the big endian equivalents are 4 less

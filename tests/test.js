@@ -433,6 +433,14 @@ suite('CBOR basic tests', function(){
 		assert.equal(decode(new Uint8Array([0xF9, 0xFC, 0])), -Infinity);
 		assert.isNaN(decode(new Uint8Array([0xF9, 0x7E, 0])));
 	});
+	test('unassigned simple values', function() {
+		// [simple(0), simple(16), simple(32), simple(255)]
+		let serialized = Buffer.from('84e0f0f820f8ff', 'hex');
+		let deserialized = decode(serialized);
+		assert.deepEqual(deserialized.map(simple => simple.value), [0, 16, 32, 255]);
+		assert.instanceOf(deserialized[0], CBOR.SimpleValue);
+		assert.equal(encode(deserialized).toString('hex'), serialized.toString('hex'));
+	});
 	test('structured cloning: types', function() {
 		let b = typeof Buffer != 'undefined' ? Buffer.alloc(20) : new Uint8Array(20)
 		let fa = new Float32Array(b.buffer, 8, 2)

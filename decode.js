@@ -508,10 +508,15 @@ export function read() {
 				case 0x17: return; // undefined
 				case 0x1f:
 				default:
-					let packedValue = (packedValues || getPackedValues())[token]
-					if (packedValue !== undefined)
-						return packedValue
-					throw new Error('Unknown token ' + token)
+					// in packed CBOR, simple(0) to simple(15) are references to shared items
+					if (token < 16 && (packedValues || currentDecoder.getShared)) {
+						let packedValue = (packedValues || getPackedValues())[token]
+						if (packedValue !== undefined)
+							return packedValue
+						throw new Error('Unknown token ' + token)
+					}
+					// other simple values are unassigned, so pass them through
+					return new SimpleValue(token)
 			}
 		default: // negative int
 			if (isNaN(token)) throw endOfCBORError()
@@ -967,6 +972,12 @@ export class Tag {
 	constructor(value, tag) {
 		this.value = value
 		this.tag = tag
+	}
+}
+
+export class SimpleValue {
+	constructor(value) {
+		this.value = value
 	}
 }
 

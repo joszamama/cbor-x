@@ -77,3 +77,8 @@ export class Tag {
 	value: any
 	tag: number
 }
+
+export class SimpleValue {
+	constructor(value: number)
+	value: number
+}
