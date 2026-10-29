@@ -690,6 +690,16 @@ suite('CBOR basic tests', function(){
 		var deserialized = decode(serialized)
 		assert.deepEqual(deserialized, data)
 	})
+	test('indefinite length strings', function(){
+		// [(_ "a", "bc"), (_ h'01', h'0203'), (_ ), (_ )]
+		assert.deepEqual(decode(Buffer.from('847f6161626263ff5f4101420203ff7fff5fff', 'hex')),
+			['abc', Buffer.from([1, 2, 3]), '', Buffer.alloc(0)])
+		// chunks must be definite length strings of the same major type
+		assert.throws(() => decode(Buffer.from('7f4101ff', 'hex')))
+		assert.throws(() => decode(Buffer.from('7f01ff', 'hex')))
+		assert.throws(() => decode(Buffer.from('7f7f6161ffff', 'hex')))
+		assert.throws(() => decode(Buffer.from('5f6161ff', 'hex')))
+	})
 	test('bigint', function(){
 		var data = {
 			bigintSmall: 352n,

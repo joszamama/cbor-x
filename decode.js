@@ -324,15 +324,18 @@ export function read() {
 				switch(majorType) {
 					case 2: // byte string
 					case 3: // text string
-						throw new Error('Indefinite length not supported for byte or text strings')
 					case 4: // array
 						let array = []
-						let value, i = 0
+						let value, i = 0, start = position
 						while ((value = read()) != STOP_CODE) {
 							if (i >= maxArraySize) throw new Error(`Array length exceeds ${maxArraySize}`)
+							// the chunks of a string must be definite length strings of the same major type
+							if (majorType != 4 && (src[start] >> 5 != majorType || (src[start] & 0x1f) == 0x1f))
+								throw new Error('Invalid chunk in indefinite length string')
 							array[i++] = value
+							start = position
 						}
-						return majorType == 4 ? array : majorType == 3 ? array.join('') : Buffer.concat(array)
+						return majorType == 4 ? array : majorType == 3 ? array.join('') : concatBytes(array)
 					case 5: // map
 						let key
 						if (currentDecoder.mapsAsObjects) {
@@ -863,6 +866,17 @@ function readBin(length) {
 		// specifically use the copying slice (not the node one)
 		Uint8Array.prototype.slice.call(src, position, position += length) :
 		src.subarray(position, position += length)
+}
+function concatBytes(chunks) {
+	if (typeof Buffer != 'undefined')
+		return Buffer.concat(chunks)
+	let bytes = new Uint8Array(chunks.reduce((length, chunk) => length + chunk.length, 0))
+	let offset = 0
+	for (let chunk of chunks) {
+		bytes.set(chunk, offset)
+		offset += chunk.length
+	}
+	return bytes
 }
 function readExt(length) {
 	let type = src[position++]
