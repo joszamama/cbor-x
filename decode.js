@@ -976,8 +976,8 @@ currentExtensions[0] = (dateString) => {
 }
 
 currentExtensions[1] = (epochSec) => {
-	// numeric date extension
-	return new Date(Math.round(epochSec * 1000))
+	// numeric date extension (an integer with an 8-byte argument is a BigInt)
+	return new Date(Math.round(Number(epochSec) * 1000))
 }
 
 currentExtensions[2] = (buffer) => {
@@ -999,8 +999,16 @@ currentExtensions[4] = (fraction) => {
 }
 
 currentExtensions[5] = (fraction) => {
+	let exponent = fraction[0], mantissa = fraction[1]
+	if (typeof exponent == 'bigint' || typeof mantissa == 'bigint') {
+		// an integer with an 8-byte argument is a BigInt; keep the tag if it does not convert to a number exactly
+		exponent = Number(exponent)
+		mantissa = Number(mantissa)
+		if (!Number.isSafeInteger(exponent) || !Number.isSafeInteger(mantissa))
+			return new Tag(fraction, 5)
+	}
 	// probably not sufficiently accurate
-	return fraction[1] * Math.exp(fraction[0] * Math.log(2))
+	return mantissa * Math.exp(exponent * Math.log(2))
 }
 
 // the registration of the record definition extension

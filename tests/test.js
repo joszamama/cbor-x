@@ -433,6 +433,18 @@ suite('CBOR basic tests', function(){
 		assert.equal(decode(new Uint8Array([0xF9, 0xFC, 0])), -Infinity);
 		assert.isNaN(decode(new Uint8Array([0xF9, 0x7E, 0])));
 	});
+	test('tags with 8-byte integer content', function() {
+		// 1(1) and 1(-1), with the integers written in 8 bytes (decoded as BigInt)
+		assert.equal(decode(Buffer.from('c11b0000000000000001', 'hex')).toISOString(), '1970-01-01T00:00:01.000Z');
+		assert.equal(decode(Buffer.from('c13b0000000000000000', 'hex')).toISOString(), '1969-12-31T23:59:59.000Z');
+		// 5([0, 3]), with the integers written in 8 bytes
+		assert.equal(decode(Buffer.from('c5821b00000000000000001b0000000000000003', 'hex')), 3);
+		// 5([1, 9007199254740993]) can not be represented exactly as a number
+		let tag = decode(Buffer.from('c582011b0020000000000001', 'hex'));
+		assert.instanceOf(tag, CBOR.Tag);
+		assert.equal(tag.tag, 5);
+		assert.deepEqual(tag.value, [1, 9007199254740993n]);
+	});
 	test('structured cloning: types', function() {
 		let b = typeof Buffer != 'undefined' ? Buffer.alloc(20) : new Uint8Array(20)
 		let fa = new Float32Array(b.buffer, 8, 2)
